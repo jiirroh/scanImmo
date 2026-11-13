@@ -1,0 +1,25 @@
+{
+  "version": "1.0",
+  "sites": [
+    {
+      "id": "pap-rennes-maisons",
+      "name": "PAP - Maisons Rennes & alentours",
+      "portal": "PAP",
+      "url": "https://www.pap.fr/annonce/vente-maisons-rennes-35000-g43564",
+      "enabled": true,
+      "category": "Maison",
+      "location": "Rennes (35000)",
+      "notes": "Recherche Particulier à Particulier"
+    },
+    {
+      "id": "paruvendu-rennes-maisons",
+      "name": "ParuVendu - Maisons Rennes",
+      "portal": "ParuVendu",
+      "url": "https://www.paruvendu.fr/immobilier/vente/maison/rennes-35000/?p=1",
+      "enabled": true,
+      "category": "Maison",
+      "location": "Rennes (35000)",
+      "notes": "Annonces de particuliers et agences"
+    }
+  ]
+}

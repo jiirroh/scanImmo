@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="fr" class="h-full bg-slate-50">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Veille Immobilière - Gestion des Sites</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+  </style>
+</head>
+<body class="h-full flex flex-col text-slate-800 antialiased">
+
+  <!-- Header -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-xs">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white text-xl shadow-sm">
+          🏡
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="font-bold text-lg text-slate-900 leading-tight">Veille Immobilière</h1>
+            <span id="env-badge" class="px-2 py-0.5 text-[11px] font-semibold rounded-full bg-slate-100 text-slate-600">Local</span>
+          </div>
+          <p class="text-xs text-slate-500 font-medium">Gestionnaire des sites & URLs surveillées</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2 sm:gap-3">
+        <button onclick="triggerWorkflow()" class="inline-flex items-center gap-1.5 sm:gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs sm:text-sm px-3 sm:px-4 py-2 rounded-lg transition-colors shadow-sm" title="Déclenche le workflow de scraping immédiatement sur GitHub Actions">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+          <span class="hidden sm:inline">Lancer le rapport</span><span class="sm:hidden">Lancer</span>
+        </button>
+        <button onclick="openModal()" class="inline-flex items-center gap-1.5 sm:gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs sm:text-sm px-3 sm:px-4 py-2 rounded-lg transition-colors shadow-sm">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+          <span class="hidden sm:inline">Ajouter un site</span><span class="sm:hidden">+</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6">
+
+    <!-- KPI / Stats Cards -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      <div class="bg-white p-4 sm:p-5 rounded-xl border border-slate-200 shadow-xs">
+        <p class="text-[11px] sm:text-xs font-semibold text-slate-500 uppercase tracking-wider">Recherches</p>
+        <p id="stat-total" class="text-xl sm:text-2xl font-bold text-slate-900 mt-1">--</p>
+      </div>
+      <div class="bg-white p-4 sm:p-5 rounded-xl border border-slate-200 shadow-xs">
+        <p class="text-[11px] sm:text-xs font-semibold text-slate-500 uppercase tracking-wider">Actives</p>
+        <p id="stat-active" class="text-xl sm:text-2xl font-bold text-emerald-600 mt-1">--</p>
+      </div>
+      <div class="bg-white p-4 sm:p-5 rounded-xl border border-slate-200 shadow-xs">
+        <p class="text-[11px] sm:text-xs font-semibold text-slate-500 uppercase tracking-wider">Annonces mémorisées</p>
+        <p id="stat-seen" class="text-xl sm:text-2xl font-bold text-blue-600 mt-1">--</p>
+      </div>
+      <div class="bg-white p-4 sm:p-5 rounded-xl border border-slate-200 shadow-xs">
+        <p class="text-[11px] sm:text-xs font-semibold text-slate-500 uppercase tracking-wider">Automatisation</p>
+        <p class="text-xs sm:text-sm font-semibold text-slate-700 mt-1 flex items-center gap-1.5">
+          <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse flex-shrink-0"></span>
+          Tous les matins à 08h
+        </p>
+      </div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div id="toast-container" class="fixed bottom-5 right-5 z-50 space-y-2"></div>
+
+    <!-- Sites List Section -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
+      <div class="px-5 sm:px-6 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50/50">
+        <div>
+          <h2 class="font-semibold text-slate-900 text-sm sm:text-base">Sites & Portails sous surveillance</h2>
+          <p class="text-xs text-slate-500 mt-0.5">Ces recherches sont explorées automatiquement pour générer le rapport.</p>
+        </div>
+        <span id="sites-badge" class="px-2.5 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-700">
+          Chargement...
+        </span>
+      </div>
+
+      <!-- Sites Table -->
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr class="border-b border-slate-200 bg-slate-50 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+              <th class="py-3 px-4 sm:px-6">État</th>
+              <th class="py-3 px-4 sm:px-6">Portail & Libellé</th>
+              <th class="py-3 px-4 sm:px-6">URL de Recherche</th>
+              <th class="py-3 px-4 sm:px-6">Localisation</th>
+              <th class="py-3 px-4 sm:px-6 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="sites-list" class="divide-y divide-slate-200 text-sm">
+            <tr>
+              <td colspan="5" class="py-8 text-center text-slate-500">Chargement de la configuration...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Helper banner -->
+    <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-xl p-4 sm:p-5 flex items-start gap-3 sm:gap-4">
+      <div class="text-2xl">💡</div>
+      <div class="text-xs text-blue-900 leading-relaxed space-y-1">
+        <p class="font-semibold text-sm text-blue-950">Architecture Hybride Vercel + GitHub Actions</p>
+        <p>Cette interface vous permet d'ajouter ou modifier vos critères de recherche n'importe où (ordinateur ou smartphone). Les modifications sont sauvegardées instantanément dans le dépôt GitHub, et le moteur GitHub Actions s'occupe de scraper et d'envoyer votre rapport quotidien par e-mail chaque matin à 08h00.</p>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Add/Edit Modal -->
+  <div id="modal-site" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4 z-50 hidden">
+    <div class="bg-white rounded-2xl max-w-lg w-full p-5 sm:p-6 shadow-xl border border-slate-100 space-y-4 sm:space-y-5">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <h3 id="modal-title" class="font-bold text-slate-900 text-base sm:text-lg">Ajouter une recherche immobilière</h3>
+        <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <form id="site-form" onsubmit="saveSite(event)" class="space-y-3 sm:space-y-4">
+        <input type="hidden" id="site-id" value="">
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Nom / Libellé de la recherche</label>
+          <input type="text" id="site-name" required placeholder="Ex: PAP - Maisons Rennes 4 pièces" class="w-full text-sm px-3.5 py-2.5 rounded-lg border border-slate-300 focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Portail Immobilier</label>
+          <select id="site-portal" class="w-full text-sm px-3.5 py-2.5 rounded-lg border border-slate-300 focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white">
+            <option value="PAP">PAP (Particulier à Particulier)</option>
+            <option value="ParuVendu">ParuVendu.fr</option>
+            <option value="Autre">Autre / Détection automatique</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">URL complète de la recherche</label>
+          <input type="url" id="site-url" required placeholder="https://www.pap.fr/annonce/vente-maisons-..." class="w-full text-sm px-3.5 py-2.5 rounded-lg border border-slate-300 focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-xs">
+          <p class="text-[11px] text-slate-500 mt-1">Collez l'URL de votre recherche avec vos filtres (prix, ville, surface).</p>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Localisation (optionnel)</label>
+            <input type="text" id="site-location" placeholder="Ex: Rennes (35)" class="w-full text-sm px-3.5 py-2.5 rounded-lg border border-slate-300 focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Catégorie</label>
+            <input type="text" id="site-category" placeholder="Ex: Maison, Appartement" class="w-full text-sm px-3.5 py-2.5 rounded-lg border border-slate-300 focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+          </div>
+        </div>
+
+        <div class="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+          <button type="button" onclick="closeModal()" class="px-4 py-2 text-sm font-semibold text-slate-600 hover:text-slate-800">
+            Annuler
+          </button>
+          <button type="submit" class="px-5 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm transition-colors">
+            Enregistrer
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Live Test Results Modal -->
+  <div id="modal-test" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4 z-50 hidden">
+    <div class="bg-white rounded-2xl max-w-2xl w-full p-5 sm:p-6 shadow-xl border border-slate-100 space-y-4 max-h-[90vh] flex flex-col">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3 flex-shrink-0">
+        <div>
+          <h3 id="test-title" class="font-bold text-slate-900 text-base sm:text-lg">Résultats du Scraping en Direct</h3>
+          <p id="test-subtitle" class="text-xs text-slate-500 truncate max-w-xs sm:max-w-md">Extraction immédiate des annonces...</p>
+        </div>
+        <button onclick="closeTestModal()" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <div id="test-content" class="overflow-y-auto flex-1 space-y-3 pr-1">
+        <div class="py-12 text-center text-slate-500">
+          <svg class="animate-spin h-8 w-8 text-blue-600 mx-auto mb-3" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg>
+          <p class="font-medium text-sm">Téléchargement et analyse de la page en cours...</p>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-between pt-3 border-t border-slate-100 flex-shrink-0">
+        <span id="test-count" class="text-xs font-semibold text-slate-600">-- annonces trouvées</span>
+        <button onclick="closeTestModal()" class="px-4 py-2 text-sm font-semibold text-white bg-slate-800 hover:bg-slate-900 rounded-lg">
+          Fermer
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let sitesData = [];
+
+    async function loadSites() {
+      try {
+        const res = await fetch('/api/sites');
+        const data = await res.json();
+        sitesData = data.sites || [];
+        renderSites();
+        loadStats();
+      } catch (err) {
+        showToast('Erreur lors du chargement des sites', 'error');
+      }
+    }
+
+    async function loadStats() {
+      try {
+        const res = await fetch('/api/stats');
+        const stats = await res.json();
+        document.getElementById('stat-total').innerText = sitesData.length;
+        document.getElementById('stat-active').innerText = sitesData.filter(s => s.enabled).length;
+        document.getElementById('stat-seen').innerText = stats.total_seen || 0;
+        document.getElementById('sites-badge').innerText = `${sitesData.length} configuré(s)`;
+
+        const badge = document.getElementById('env-badge');
+        if (stats.is_vercel) {
+          badge.innerText = stats.github_connected ? 'Vercel + GitHub Connecté' : 'Vercel (Stand-alone)';
+          badge.className = 'px-2 py-0.5 text-[11px] font-semibold rounded-full bg-blue-100 text-blue-700';
+        }
+      } catch (err) {}
+    }
+
+    function renderSites() {
+      const container = document.getElementById('sites-list');
+      if (sitesData.length === 0) {
+        container.innerHTML = `
+          <tr>
+            <td colspan="5" class="py-12 text-center text-slate-400">
+              <div class="text-3xl mb-2">🔍</div>
+              <p class="font-medium text-sm text-slate-600">Aucune recherche configurée</p>
+              <p class="text-xs text-slate-400 mt-1">Cliquez sur "Ajouter un site" ci-dessus pour commencer.</p>
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      container.innerHTML = sitesData.map(site => {
+        const portalBadge = site.portal === 'PAP'
+          ? '<span class="px-2 py-0.5 text-xs font-semibold rounded bg-red-100 text-red-700">PAP</span>'
+          : site.portal === 'ParuVendu'
+          ? '<span class="px-2 py-0.5 text-xs font-semibold rounded bg-orange-100 text-orange-700">ParuVendu</span>'
+          : '<span class="px-2 py-0.5 text-xs font-semibold rounded bg-blue-100 text-blue-700">Web</span>';
+
+        return `
+          <tr class="hover:bg-slate-50/70 transition-colors">
+            <td class="py-4 px-4 sm:px-6">
+              <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" ${site.enabled ? 'checked' : ''} onchange="toggleSite('${site.id}', this.checked)" class="sr-only peer">
+                <div class="w-9 h-5 bg-slate-200 peer-focus:outline-hidden rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div>
+              </label>
+            </td>
+            <td class="py-4 px-4 sm:px-6">
+              <div class="flex items-center gap-2">
+                ${portalBadge}
+                <span class="font-semibold text-slate-900">${escapeHtml(site.name)}</span>
+              </div>
+            </td>
+            <td class="py-4 px-4 sm:px-6">
+              <a href="${site.url}" target="_blank" class="text-xs text-blue-600 hover:text-blue-800 font-mono hover:underline flex items-center gap-1 max-w-xs truncate" title="${site.url}">
+                <span class="truncate">${site.url}</span>
+                <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+              </a>
+            </td>
+            <td class="py-4 px-4 sm:px-6 text-xs text-slate-600">
+              ${site.location ? `<span class="bg-slate-100 px-2 py-0.5 rounded font-medium">${escapeHtml(site.location)}</span>` : '<span class="text-slate-400">--</span>'}
+            </td>
+            <td class="py-4 px-4 sm:px-6 text-right">
+              <div class="flex items-center justify-end gap-1.5 sm:gap-2">
+                <button onclick="testSite('${site.url}', '${escapeHtml(site.name)}')" title="Tester ce site en direct" class="px-2.5 py-1 text-xs font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-md transition-colors">
+                  🧪 Tester
+                </button>
+                <button onclick="editSite('${site.id}')" title="Modifier" class="p-1 text-slate-500 hover:text-slate-800 rounded">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                </button>
+                <button onclick="deleteSite('${site.id}')" title="Supprimer" class="p-1 text-red-500 hover:text-red-700 rounded">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                </button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    async function toggleSite(id, enabled) {
+      try {
+        await fetch('/api/sites/toggle', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id, enabled }),
+        });
+        const site = sitesData.find(s => s.id === id);
+        if (site) site.enabled = enabled;
+        loadStats();
+        showToast(`Site ${enabled ? 'activé' : 'désactivé'}`, 'success');
+      } catch (err) {
+        showToast('Erreur lors du changement d\'état', 'error');
+      }
+    }
+
+    function openModal(editId = null) {
+      const modal = document.getElementById('modal-site');
+      const form = document.getElementById('site-form');
+      form.reset();
+
+      if (editId) {
+        const site = sitesData.find(s => s.id === editId);
+        if (site) {
+          document.getElementById('modal-title').innerText = 'Modifier la recherche';
+          document.getElementById('site-id').value = site.id;
+          document.getElementById('site-name').value = site.name || '';
+          document.getElementById('site-portal').value = site.portal || 'Autre';
+          document.getElementById('site-url').value = site.url || '';
+          document.getElementById('site-location').value = site.location || '';
+          document.getElementById('site-category').value = site.category || '';
+        }
+      } else {
+        document.getElementById('modal-title').innerText = 'Ajouter une recherche immobilière';
+        document.getElementById('site-id').value = '';
+      }
+
+      modal.classList.remove('hidden');
+    }
+
+    function closeModal() {
+      document.getElementById('modal-site').classList.add('hidden');
+    }
+
+    async function saveSite(event) {
+      event.preventDefault();
+      const id = document.getElementById('site-id').value;
+      const url = document.getElementById('site-url').value.trim();
+      let portal = document.getElementById('site-portal').value;
+
+      if (portal === 'Autre') {
+        if (url.includes('pap.fr')) portal = 'PAP';
+        else if (url.includes('paruvendu.fr')) portal = 'ParuVendu';
+      }
+
+      const payload = {
+        id: id || ('site-' + Date.now()),
+        name: document.getElementById('site-name').value.trim(),
+        portal: portal,
+        url: url,
+        location: document.getElementById('site-location').value.trim(),
+        category: document.getElementById('site-category').value.trim(),
+        enabled: true,
+      };
+
+      try {
+        await fetch('/api/sites', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        closeModal();
+        showToast('Recherche enregistrée avec succès !', 'success');
+        loadSites();
+      } catch (err) {
+        showToast('Échec de la sauvegarde', 'error');
+      }
+    }
+
+    function editSite(id) {
+      openModal(id);
+    }
+
+    async function deleteSite(id) {
+      if (!confirm('Voulez-vous vraiment supprimer cette recherche ?')) return;
+      try {
+        await fetch('/api/sites', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id }),
+        });
+        showToast('Recherche supprimée', 'success');
+        loadSites();
+      } catch (err) {
+        showToast('Erreur lors de la suppression', 'error');
+      }
+    }
+
+    async function testSite(url, name) {
+      const modal = document.getElementById('modal-test');
+      const content = document.getElementById('test-content');
+      document.getElementById('test-title').innerText = `Test en direct : ${name}`;
+      document.getElementById('test-subtitle').innerText = url;
+      document.getElementById('test-count').innerText = 'Analyse en cours...';
+
+      content.innerHTML = `
+        <div class="py-12 text-center text-slate-500">
+          <svg class="animate-spin h-8 w-8 text-blue-600 mx-auto mb-3" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg>
+          <p class="font-medium text-sm">Téléchargement et analyse de la page en cours...</p>
+        </div>
+      `;
+      modal.classList.remove('hidden');
+
+      try {
+        const res = await fetch('/api/test-scrape', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url }),
+        });
+        const data = await res.json();
+        const items = data.announcements || [];
+
+        document.getElementById('test-count').innerText = `${items.length} annonce(s) trouvée(s)`;
+
+        if (items.length === 0) {
+          content.innerHTML = `
+            <div class="p-8 text-center bg-slate-50 rounded-xl text-slate-500">
+              <p class="text-base font-semibold">Aucune annonce extraite</p>
+              <p class="text-xs mt-1">Vérifiez l'URL ou si la page contient des filtres trop stricts.</p>
+            </div>
+          `;
+          return;
+        }
+
+        content.innerHTML = items.map(ann => `
+          <div class="flex gap-4 p-3 bg-white border border-slate-200 rounded-xl hover:shadow-xs transition-shadow">
+            ${ann.image_url ? `<img src="${ann.image_url}" class="w-24 h-20 object-cover rounded-lg flex-shrink-0 bg-slate-100" />` : ''}
+            <div class="flex-1 min-w-0">
+              <div class="flex items-start justify-between gap-2">
+                <h4 class="font-semibold text-slate-900 text-sm truncate">${escapeHtml(ann.title)}</h4>
+                <span class="text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded whitespace-nowrap">${ann.price || 'Prix N/C'}</span>
+              </div>
+              <p class="text-xs text-slate-500 mt-1">${ann.location || ''} ${ann.surface ? '&bull; ' + ann.surface : ''}</p>
+              <div class="mt-2 flex items-center justify-between">
+                <span class="text-[11px] font-mono text-slate-400">ID: ${ann.id}</span>
+                <a href="${ann.url}" target="_blank" class="text-xs text-blue-600 hover:underline font-semibold">Voir l'offre &rarr;</a>
+              </div>
+            </div>
+          </div>
+        `).join('');
+
+      } catch (err) {
+        content.innerHTML = `<div class="p-4 bg-red-50 text-red-700 rounded-lg text-sm">Échec du test de scraping : ${err.message}</div>`;
+      }
+    }
+
+    function closeTestModal() {
+      document.getElementById('modal-test').classList.add('hidden');
+    }
+
+    async function triggerWorkflow() {
+      showToast('Déclenchement de la veille sur GitHub Actions...', 'info');
+      try {
+        const res = await fetch('/api/trigger-run', { method: 'POST' });
+        const data = await res.json();
+        if (data.success) {
+          showToast('Veille lancée ! Le rapport par e-mail va arriver d\'ici quelques instants.', 'success');
+        } else {
+          showToast(data.message || 'Échec du déclenchement GitHub Actions', 'error');
+        }
+      } catch (err) {
+        showToast('Erreur lors du déclenchement', 'error');
+      }
+    }
+
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      const bg = type === 'success' ? 'bg-emerald-600' : type === 'error' ? 'bg-red-600' : 'bg-slate-800';
+      toast.className = `${bg} text-white text-xs font-medium px-4 py-2.5 rounded-lg shadow-lg transition-opacity duration-300 flex items-center gap-2`;
+      toast.innerText = message;
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        setTimeout(() => toast.remove(), 300);
+      }, 4000);
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str).replace(/[&<>"']/g, m => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
+    }
+
+    document.addEventListener('DOMContentLoaded', loadSites);
+  </script>
+</body>
+</html>

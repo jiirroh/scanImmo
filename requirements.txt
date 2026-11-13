@@ -1,0 +1,7 @@
+# Dépendances du projet de veille immobilière
+requests>=2.31.0
+beautifulsoup4>=4.12.3
+python-dotenv>=1.0.1
+
+# Outils de tests et qualité
+pytest>=8.0.0
